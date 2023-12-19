@@ -3,59 +3,53 @@
 // All of the Node.js APIs are available in this process.
 const remote = require('electron').remote;
 
-(function handleWindowControls() {
-    // When document has loaded, initialise
-    document.onreadystatechange = () => {
-        if (document.readyState == "complete") {
-            init();
-        }
-    };
+const win = remote.getCurrentWindow(); /* Note this is different to the
+html global `window` variable */
 
-    function init() {
-        let window = remote.getCurrentWindow();
-        const minButton = document.getElementById('min-button'),
-            maxButton = document.getElementById('max-button'),
-            restoreButton = document.getElementById('restore-button'),
-            closeButton = document.getElementById('close-button');
+// When document has loaded, initialise
+document.onreadystatechange = (event) => {
+    if (document.readyState == "complete") {
+        handleWindowControls();
 
-        minButton.addEventListener("click", event => {
-            window = remote.getCurrentWindow();
-            window.minimize();
-        });
+        document.getElementById('electron-ver').innerHTML = `${process.versions.electron}`
+    }
+};
 
-        maxButton.addEventListener("click", event => {
-            window = remote.getCurrentWindow();
-            window.maximize();
-            toggleMaxRestoreButtons();
-        });
+window.onbeforeunload = (event) => {
+    /* If window is reloaded, remove win event listeners
+    (DOM element listeners get auto garbage collected but not
+    Electron win listeners as the win is not dereferenced unless closed) */
+    win.removeAllListeners();
+}
 
-        restoreButton.addEventListener("click", event => {
-            window = remote.getCurrentWindow();
-            window.unmaximize();
-            toggleMaxRestoreButtons();
-        });
+function handleWindowControls() {
+    // Make minimise/maximise/restore/close buttons work when they are clicked
+    document.getElementById('min-button').addEventListener("click", event => {
+        win.minimize();
+    });
 
-        // Toggle maximise/restore buttons when maximisation/unmaximisation
-        // occurs by means other than button clicks e.g. double-clicking
-        // the title bar:
-        toggleMaxRestoreButtons();
-        window.on('maximize', toggleMaxRestoreButtons);
-        window.on('unmaximize', toggleMaxRestoreButtons);
+    document.getElementById('max-button').addEventListener("click", event => {
+        win.maximize();
+    });
 
-        closeButton.addEventListener("click", event => {
-            window = remote.getCurrentWindow();
-            window.close();
-        });
+    document.getElementById('restore-button').addEventListener("click", event => {
+        win.unmaximize();
+    });
 
-        function toggleMaxRestoreButtons() {
-            window = remote.getCurrentWindow();
-            if (window.isMaximized()) {
-                maxButton.style.display = "none";
-                restoreButton.style.display = "flex";
-            } else {
-                restoreButton.style.display = "none";
-                maxButton.style.display = "flex";
-            }
+    document.getElementById('close-button').addEventListener("click", event => {
+        win.close();
+    });
+
+    // Toggle maximise/restore buttons when maximisation/unmaximisation occurs
+    toggleMaxRestoreButtons();
+    win.on('maximize', toggleMaxRestoreButtons);
+    win.on('unmaximize', toggleMaxRestoreButtons);
+
+    function toggleMaxRestoreButtons() {
+        if (win.isMaximized()) {
+            document.body.classList.add('maximized');
+        } else {
+            document.body.classList.remove('maximized');
         }
     }
-})();
+}
